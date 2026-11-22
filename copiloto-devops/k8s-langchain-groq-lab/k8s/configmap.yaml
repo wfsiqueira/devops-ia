@@ -1,0 +1,9 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: chatbot-config
+  namespace: k8s-chatbot
+data:
+  PORT: "8080"
+  LOG_LEVEL: "INFO"
+  APP_NAME: "k8s-troubleshooting-chatbot"

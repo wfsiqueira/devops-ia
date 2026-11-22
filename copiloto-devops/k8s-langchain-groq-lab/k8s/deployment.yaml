@@ -1,0 +1,70 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: k8s-chatbot
+  namespace: k8s-chatbot
+  labels:
+    app: k8s-chatbot
+    version: v1
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: k8s-chatbot
+  template:
+    metadata:
+      labels:
+        app: k8s-chatbot
+        version: v1
+    spec:
+      serviceAccountName: k8s-chatbot-sa
+      containers:
+      - name: chatbot
+        image: wsiqueira/k8s-chatbot:v3
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 8080
+          name: http
+          protocol: TCP
+        env:
+        - name: PORT
+          valueFrom:
+            configMapKeyRef:
+              name: chatbot-config
+              key: PORT
+        - name: GROQ_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: groq-api-secret
+              key: GROQ_API_KEY
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "200m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8080
+          initialDelaySeconds: 15
+          periodSeconds: 20
+          timeoutSeconds: 5
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /ready
+            port: 8080
+          initialDelaySeconds: 10
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+        securityContext:
+          runAsNonRoot: true
+          runAsUser: 1000
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+          readOnlyRootFilesystem: false

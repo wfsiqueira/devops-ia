@@ -1,0 +1,591 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DevOps Agêntico: Sem Enrolação</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=IBM+Plex+Sans:wght@400;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --ink: #0B0E14;
+            --panel: #11151F;
+            --panel-raised: #161B27;
+            --line: #232A38;
+            --amber: #FFB454;
+            --amber-dim: #B37B2E;
+            --blue: #6CA4F8;
+            --green: #7FD962;
+            --red: #F07178;
+            --text: #C9CFDB;
+            --text-dim: #6B7385;
+            --mono: 'IBM Plex Mono', ui-monospace, 'SF Mono', Menlo, monospace;
+            --sans: 'IBM Plex Sans', -apple-system, 'Segoe UI', sans-serif;
+            --display: 'Space Grotesk', var(--sans);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        html, body { height: 100%; }
+
+        body {
+            font-family: var(--sans);
+            background: var(--ink);
+            color: var(--text);
+            display: flex;
+            flex-direction: column;
+            height: 100dvh;
+            overflow: hidden;
+        }
+
+        /* ── Barra de status ───────────────────────────── */
+        .statusbar {
+            flex-shrink: 0;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 16px;
+            padding: 14px 24px;
+            border-bottom: 1px solid var(--line);
+            background: var(--panel);
+        }
+
+        .brand {
+            display: flex;
+            align-items: baseline;
+            gap: 10px;
+            min-width: 0;
+        }
+
+        .brand .helm {
+            color: var(--amber);
+            font-size: 22px;
+            line-height: 1;
+            align-self: center;
+        }
+
+        .brand h1 {
+            font-family: var(--display);
+            font-weight: 700;
+            font-size: 19px;
+            letter-spacing: -0.02em;
+            color: #EDEFF4;
+            white-space: nowrap;
+        }
+
+        .brand h1 .tagline {
+            color: var(--amber);
+            font-weight: 500;
+        }
+
+        .cursor {
+            display: inline-block;
+            width: 9px;
+            height: 1.05em;
+            margin-left: 3px;
+            background: var(--amber);
+            vertical-align: text-bottom;
+            animation: blink 1.1s steps(1) infinite;
+        }
+
+        @keyframes blink { 50% { opacity: 0; } }
+
+        .status-group {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            font-family: var(--mono);
+            font-size: 12px;
+            color: var(--text-dim);
+            white-space: nowrap;
+        }
+
+        .status-pill {
+            display: flex;
+            align-items: center;
+            gap: 7px;
+            padding: 5px 11px;
+            border: 1px solid var(--line);
+            border-radius: 3px;
+            background: var(--ink);
+        }
+
+        .dot {
+            width: 7px;
+            height: 7px;
+            border-radius: 50%;
+            background: var(--text-dim);
+        }
+
+        .dot.online {
+            background: var(--green);
+            box-shadow: 0 0 6px rgba(127, 217, 98, 0.6);
+            animation: pulse-dot 2.4s ease-in-out infinite;
+        }
+
+        .dot.offline { background: var(--red); }
+
+        @keyframes pulse-dot {
+            50% { box-shadow: 0 0 2px rgba(127, 217, 98, 0.2); }
+        }
+
+        .model-badge { color: var(--amber-dim); }
+
+        /* ── Sessão (log do terminal) ──────────────────── */
+        .session {
+            flex: 1;
+            overflow-y: auto;
+            scroll-behavior: smooth;
+        }
+
+        .session-inner {
+            max-width: 860px;
+            margin: 0 auto;
+            padding: 28px 24px 16px;
+        }
+
+        .entry {
+            margin-bottom: 26px;
+            animation: rise 0.25s ease both;
+        }
+
+        @keyframes rise {
+            from { opacity: 0; transform: translateY(6px); }
+            to   { opacity: 1; transform: none; }
+        }
+
+        .entry.user {
+            font-family: var(--mono);
+            font-size: 14px;
+            display: flex;
+            gap: 10px;
+            color: #E4E8F0;
+        }
+
+        .entry.user .prompt-glyph {
+            color: var(--blue);
+            font-weight: 600;
+            flex-shrink: 0;
+            user-select: none;
+        }
+
+        .entry.agent {
+            border-left: 2px solid var(--amber);
+            padding: 4px 0 4px 18px;
+            font-size: 14.5px;
+            line-height: 1.65;
+        }
+
+        .entry.agent .who {
+            font-family: var(--mono);
+            font-size: 11px;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            color: var(--amber);
+            margin-bottom: 8px;
+            user-select: none;
+        }
+
+        .entry.agent pre {
+            background: var(--panel);
+            border: 1px solid var(--line);
+            border-radius: 4px;
+            padding: 12px 14px;
+            margin: 12px 0;
+            overflow-x: auto;
+            font-family: var(--mono);
+            font-size: 12.5px;
+            line-height: 1.6;
+            color: var(--text);
+        }
+
+        .entry.agent code {
+            font-family: var(--mono);
+            font-size: 0.9em;
+            background: var(--panel-raised);
+            border: 1px solid var(--line);
+            border-radius: 3px;
+            padding: 1px 6px;
+            color: var(--amber);
+        }
+
+        .entry.agent pre code {
+            background: none;
+            border: none;
+            padding: 0;
+            color: inherit;
+        }
+
+        .entry.agent pre .cmd {
+            color: var(--amber);
+            font-weight: 600;
+        }
+
+        .entry.agent.error {
+            border-left-color: var(--red);
+        }
+
+        .entry.agent.error .who { color: var(--red); }
+
+        /* ── Indicador "executando" ────────────────────── */
+        .running {
+            font-family: var(--mono);
+            font-size: 13px;
+            color: var(--text-dim);
+        }
+
+        .running .spinner {
+            display: inline-block;
+            color: var(--amber);
+            width: 1.2em;
+        }
+
+        /* ── Sugestões ─────────────────────────────────── */
+        .suggestions {
+            flex-shrink: 0;
+            border-top: 1px solid var(--line);
+            background: var(--panel);
+        }
+
+        .suggestions-inner {
+            max-width: 860px;
+            margin: 0 auto;
+            padding: 12px 24px 0;
+            display: flex;
+            gap: 8px;
+            overflow-x: auto;
+            scrollbar-width: none;
+        }
+
+        .suggestions-inner::-webkit-scrollbar { display: none; }
+
+        .chip {
+            flex-shrink: 0;
+            font-family: var(--mono);
+            font-size: 12px;
+            color: var(--text-dim);
+            background: var(--ink);
+            border: 1px solid var(--line);
+            border-radius: 3px;
+            padding: 7px 12px;
+            cursor: pointer;
+            transition: color 0.15s, border-color 0.15s;
+        }
+
+        .chip::before {
+            content: '❯ ';
+            color: var(--amber-dim);
+        }
+
+        .chip:hover, .chip:focus-visible {
+            color: var(--amber);
+            border-color: var(--amber-dim);
+        }
+
+        /* ── Linha de comando ──────────────────────────── */
+        .cmdline {
+            flex-shrink: 0;
+            background: var(--panel);
+            padding-bottom: max(16px, env(safe-area-inset-bottom));
+        }
+
+        .cmdline-inner {
+            max-width: 860px;
+            margin: 0 auto;
+            padding: 12px 24px 0;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .cmdline .field {
+            flex: 1;
+            min-width: 0;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            background: var(--ink);
+            border: 1px solid var(--line);
+            border-radius: 4px;
+            padding: 0 14px;
+            transition: border-color 0.15s;
+        }
+
+        .cmdline .field:focus-within {
+            border-color: var(--amber);
+        }
+
+        .cmdline .field .prompt-glyph {
+            font-family: var(--mono);
+            color: var(--amber);
+            font-weight: 600;
+            user-select: none;
+        }
+
+        #questionInput {
+            flex: 1;
+            min-width: 0;
+            background: none;
+            border: none;
+            outline: none;
+            color: #E4E8F0;
+            font-family: var(--mono);
+            font-size: 14px;
+            padding: 13px 0;
+            caret-color: var(--amber);
+        }
+
+        #questionInput::placeholder { color: var(--text-dim); }
+
+        #sendBtn {
+            font-family: var(--display);
+            font-weight: 700;
+            font-size: 14px;
+            letter-spacing: 0.01em;
+            background: var(--amber);
+            color: var(--ink);
+            border: none;
+            border-radius: 4px;
+            padding: 13px 26px;
+            cursor: pointer;
+            transition: filter 0.15s, opacity 0.15s;
+        }
+
+        #sendBtn:hover:not(:disabled) { filter: brightness(1.1); }
+
+        #sendBtn:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+        }
+
+        :focus-visible {
+            outline: 2px solid var(--amber);
+            outline-offset: 2px;
+        }
+
+        .session::-webkit-scrollbar { width: 10px; }
+        .session::-webkit-scrollbar-thumb {
+            background: var(--line);
+            border-radius: 5px;
+        }
+
+        @media (max-width: 600px) {
+            .statusbar { padding: 12px 16px; flex-wrap: wrap; row-gap: 8px; }
+            .brand h1 { font-size: 15px; white-space: normal; }
+            .status-group { white-space: normal; }
+            .status-group .env-label { display: none; }
+            .session-inner, .suggestions-inner, .cmdline-inner { padding-left: 16px; padding-right: 16px; }
+            #sendBtn { padding: 13px 18px; }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            .cursor, .dot.online { animation: none; }
+            .entry { animation: none; }
+            .session { scroll-behavior: auto; }
+        }
+    </style>
+</head>
+<body>
+    <header class="statusbar">
+        <div class="brand">
+            <span class="helm" aria-hidden="true">⎈</span>
+            <h1>DevOps Agêntico: <span class="tagline">Sem Enrolação</span><span class="cursor" aria-hidden="true"></span></h1>
+        </div>
+        <div class="status-group">
+            <span class="status-pill">
+                <span class="dot" id="statusDot"></span>
+                <span id="statusLabel">conectando…</span>
+            </span>
+            <span class="model-badge env-label">llama-3.3-70b · groq</span>
+        </div>
+    </header>
+
+    <main class="session" id="chatContainer" aria-live="polite">
+        <div class="session-inner" id="sessionInner">
+            <div class="entry agent">
+                <div class="who">agente</div>
+                <div class="body">Sessão iniciada. Eu executo <code>kubectl</code> de verdade no cluster — pergunte sobre pods, deployments, logs, recursos e eventos, e eu investigo e explico o que encontrar.</div>
+            </div>
+        </div>
+    </main>
+
+    <div class="suggestions">
+        <div class="suggestions-inner" id="exampleChips"></div>
+    </div>
+
+    <div class="cmdline">
+        <div class="cmdline-inner">
+            <div class="field">
+                <span class="prompt-glyph" aria-hidden="true">❯</span>
+                <input
+                    type="text"
+                    id="questionInput"
+                    placeholder="pergunte ao agente sobre o cluster…"
+                    autocomplete="off"
+                    aria-label="Pergunta para o agente"
+                >
+            </div>
+            <button id="sendBtn">Enviar</button>
+        </div>
+    </div>
+
+    <script>
+        const chatContainer = document.getElementById('chatContainer');
+        const sessionInner = document.getElementById('sessionInner');
+        const questionInput = document.getElementById('questionInput');
+        const sendBtn = document.getElementById('sendBtn');
+        const exampleChips = document.getElementById('exampleChips');
+        const statusDot = document.getElementById('statusDot');
+        const statusLabel = document.getElementById('statusLabel');
+
+        // Status do cluster (pinga /health)
+        async function checkHealth() {
+            try {
+                const res = await fetch('/health');
+                const ok = res.ok;
+                statusDot.className = 'dot ' + (ok ? 'online' : 'offline');
+                statusLabel.textContent = ok ? 'cluster online' : 'cluster offline';
+            } catch {
+                statusDot.className = 'dot offline';
+                statusLabel.textContent = 'cluster offline';
+            }
+        }
+        checkHealth();
+        setInterval(checkHealth, 30000);
+
+        // Carregar sugestões
+        async function loadExamples() {
+            try {
+                const response = await fetch('/examples');
+                const data = await response.json();
+
+                data.examples.forEach(example => {
+                    const chip = document.createElement('button');
+                    chip.className = 'chip';
+                    chip.type = 'button';
+                    chip.textContent = example;
+                    chip.onclick = () => {
+                        questionInput.value = example;
+                        questionInput.focus();
+                    };
+                    exampleChips.appendChild(chip);
+                });
+            } catch (error) {
+                console.error('Erro ao carregar exemplos:', error);
+            }
+        }
+
+        // Adicionar entrada na sessão
+        function addMessage(content, isUser = false, isError = false) {
+            const entry = document.createElement('div');
+
+            if (isUser) {
+                entry.className = 'entry user';
+                const glyph = document.createElement('span');
+                glyph.className = 'prompt-glyph';
+                glyph.textContent = '❯';
+                const text = document.createElement('span');
+                text.textContent = content;
+                entry.appendChild(glyph);
+                entry.appendChild(text);
+            } else {
+                entry.className = 'entry agent' + (isError ? ' error' : '');
+                const who = document.createElement('div');
+                who.className = 'who';
+                who.textContent = isError ? 'erro' : 'agente';
+                const body = document.createElement('div');
+                body.className = 'body';
+                const formatted = content
+                    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+                    .replace(/```(\w+)?\n([\s\S]*?)```/g, (m, lang, code) => {
+                        const highlighted = code.replace(/^\$ (.*)$/gm, '<span class="cmd">$ $1</span>');
+                        return '<pre><code>' + highlighted + '</code></pre>';
+                    })
+                    .replace(/`([^`]+)`/g, '<code>$1</code>')
+                    .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
+                    .replace(/\n/g, '<br>');
+                body.innerHTML = formatted;
+                entry.appendChild(who);
+                entry.appendChild(body);
+            }
+
+            sessionInner.appendChild(entry);
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+        }
+
+        // Indicador de execução
+        const spinnerFrames = ['⠋', '⠙', '⠹', '⠸', '⠼', '⠴', '⠦', '⠧', '⠇', '⠏'];
+        let spinnerTimer = null;
+
+        function showLoading() {
+            const entry = document.createElement('div');
+            entry.className = 'entry running';
+            entry.id = 'loadingMessage';
+            entry.innerHTML = '<span class="spinner" id="spinnerGlyph">⠋</span> agente investigando o cluster…';
+            sessionInner.appendChild(entry);
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+
+            let i = 0;
+            spinnerTimer = setInterval(() => {
+                const glyph = document.getElementById('spinnerGlyph');
+                if (glyph) glyph.textContent = spinnerFrames[++i % spinnerFrames.length];
+            }, 90);
+        }
+
+        function hideLoading() {
+            clearInterval(spinnerTimer);
+            const loadingMessage = document.getElementById('loadingMessage');
+            if (loadingMessage) loadingMessage.remove();
+        }
+
+        // Enviar pergunta
+        async function sendQuestion() {
+            const question = questionInput.value.trim();
+            if (!question) return;
+
+            addMessage(question, true);
+            questionInput.value = '';
+            sendBtn.disabled = true;
+
+            showLoading();
+
+            try {
+                const response = await fetch('/chat', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ question })
+                });
+
+                hideLoading();
+
+                if (!response.ok) {
+                    throw new Error('Falha ao obter resposta');
+                }
+
+                const data = await response.json();
+
+                if (data.error) {
+                    addMessage(data.error, false, true);
+                } else {
+                    addMessage(data.answer);
+                }
+            } catch (error) {
+                hideLoading();
+                addMessage('Não foi possível conectar ao agente. Verifique se o serviço está no ar e tente de novo.', false, true);
+                console.error('Erro:', error);
+            } finally {
+                sendBtn.disabled = false;
+                questionInput.focus();
+            }
+        }
+
+        sendBtn.addEventListener('click', sendQuestion);
+        questionInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') sendQuestion();
+        });
+
+        loadExamples();
+    </script>
+</body>
+</html>
