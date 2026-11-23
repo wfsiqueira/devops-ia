@@ -6,7 +6,7 @@
 - **Sempre** crie os módulos de terraform dentro da pasta `modules/` e use `main.tf`, `variables.tf`, `outputs.tf` como padrão.
 - **Sempre** use `locals.tf` para variáveis locais e `providers.tf` para configuração de providers.
 - **Sempre** sempre crie o `.gitignore` dentro do módulo, mesmo que seja vazio, para evitar que arquivos de estado sejam comitados.
-- Use o `main.tf`da raiz do projeto para chamar os módulos, não crie recursos diretamente nele.
+- Use a pasta `examples/` da raiz do projeto os arquivos para chamar os módulos, não crie recursos diretamente nele.
 - Sempre use Terraform, nunca CloudFormation ou ARM templates
 - Prefira módulos oficiais da HashiCorp Registry
 - Use versioning explícito para providers (ex: `version = "~> 5.0"`)

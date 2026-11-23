@@ -1,0 +1,3 @@
+bucket = "SEU_BUCKET_DE_STATE"
+key    = "devops-ia/rds/terraform.tfstate"
+region = "us-east-1"
