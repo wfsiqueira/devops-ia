@@ -48,3 +48,6 @@ backend.hcl
 .env
 *.pem
 *.key
+
+# Ignore macOS system files
+.DS_Store
